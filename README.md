@@ -1,6 +1,6 @@
-# 🏊 Escuela de Natación
+# 🫧 Burbujas · Centro acuático
 
-Aplicación web para administrar una escuela de natación: registra a los **alumnos**, los organiza por **horarios** (quién está en cada grupo) y marca la **fecha de pago mensual** de cada uno. Solo entra el **administrador**, con usuario y contraseña.
+Aplicación web para administrar la escuela de natación **Burbujas**: registra a los **alumnos**, los organiza por **horarios** (quién está en cada grupo) y marca la **fecha de pago mensual** de cada uno. Solo entra el **administrador**, con usuario y contraseña.
 
 > La aplicación **no cobra ni registra pagos**: únicamente indica cuándo le toca pagar a cada alumno.
 
@@ -29,17 +29,32 @@ Aplicación web para administrar una escuela de natación: registra a los **alum
 | **Panel** | Alumnos activos, a quién le toca pagar **hoy** y en los **próximos 7 días**, suma de mensualidades y las clases del día con sus alumnos. |
 | **Alumnos** | Listado en **tarjetas** o **tabla**. Busca por nombre, tutor o teléfono; filtra por horario o por fecha de pago, y ordena por próximo pago, nombre o día del mes. |
 | **Ficha del alumno** | Datos personales, tutor y contacto, horarios inscritos y su **próxima fecha de pago** en grande. |
-| **Nuevo / editar alumno** | Captura de datos, día de pago (1–31), mensualidad y selección de horarios mostrando el cupo disponible. |
-| **Horarios** | Grupos con días, hora de inicio y fin, nivel, instructor y ocupación. Se filtran por día de la semana. |
+| **Nuevo / editar alumno** | Captura de datos, cuota de inscripción, mensualidad y horarios (mostrando el cupo). La fecha de inscripción es la de hoy y no se puede cambiar. Muestra cuánto paga al inscribirse y cuándo es su primer pago. |
+| **Horarios** | Grupos con días, hora de inicio y fin, nivel, instructor y ocupación. Se filtran por día de la semana. Ya vienen precargados los horarios de la escuela. |
 | **Detalle de horario** | Lista de los alumnos inscritos en ese grupo con su próxima fecha de pago. |
+| **Facturación** | Alumnos que piden factura con el pago que toca facturar (**hoy**, **próximos 7 días** o todos): concepto («Inscripción y mensualidad de noviembre 2026» o «Mensualidad de diciembre 2026»), importe y datos fiscales, con un botón para **copiar** todo y pegarlo en tu portal de facturación. |
+| **Cuotas** | Inscripción y mensualidad vigentes (por defecto **$250** y **$850**). Al cambiarlas puedes aplicar la nueva mensualidad también a los alumnos activos. |
 
 **Reglas principales**
 
-- Cada alumno tiene un **día de pago** al mes. La app calcula su **próxima fecha de pago**: si ese día ya pasó este mes, muestra el del mes siguiente.
+- **Al inscribirse**, un alumno nuevo paga la **inscripción** ($250) y la **mensualidad** de ese mes ($850): **$1,100** en total. Los montos se proponen desde **Cuotas** y se pueden ajustar por alumno (por ejemplo, un descuento).
+- **La fecha de inscripción es el día en que se registra** al alumno: no se elige ni se puede cambiar después.
+- **Paga cada mes el mismo día de su inscripción.** Como el mes de la inscripción ya quedó pagado, el primer pago es el **mes siguiente**. Ejemplo: inscrito el 24 de noviembre → paga el **24 de diciembre**, el 24 de enero, etc.
+- **Meses que no tienen ese día** (30 o 31 en febrero, 31 en abril, junio, septiembre o noviembre): el pago **se recorre al día 1 del mes siguiente**. Ejemplo: inscrito el 30 de enero → el pago de febrero cae el **1 de marzo**, y luego el 30 de marzo.
 - Avisos: **Paga hoy**, **Próximos 7 días** o **Programado**.
-- Si alguien paga el día 29, 30 o 31, en los meses más cortos se toma el **último día del mes**.
+- **Factura:** en la ficha de cada alumno se activa «Requiere factura» y se capturan **RFC, nombre o razón social, régimen fiscal, código postal del domicilio fiscal, uso de CFDI y correo**, tal como aparecen en la Constancia de Situación Fiscal. Se validan el formato del RFC (12 caracteres persona moral, 13 persona física), el C.P. de 5 dígitos, el correo y que el régimen y el uso de CFDI apliquen al tipo de persona. La aplicación **no timbra** el CFDI: reúne los datos para emitirlo en tu sistema de facturación.
 - Un horario **no admite más alumnos que su cupo**.
 - Un alumno **inactivo** conserva sus datos, pero deja de contar para el cupo y para los avisos.
+
+**Catálogo de horarios precargado** (clases de una hora, cupo de 10 alumnos cada una):
+
+| Días | Horarios |
+| --- | --- |
+| Lunes, miércoles y viernes | 4–5 pm · 5–6 pm · 6–7 pm · 7–8 pm · 8–9 pm |
+| Martes y jueves | 4–5 pm · 5–6 pm · 6–7 pm |
+| Sábado | 8–9 am · 9–10 am |
+
+Se cargan solos la primera vez que arranca la API, cuando todavía no hay ningún horario. Después puedes editarlos (cupo, nivel, instructor), agregar otros o borrarlos desde la pantalla **Horarios**, y no se vuelven a crear.
 
 ## Tecnologías
 
@@ -176,21 +191,22 @@ escuela-natacion/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/escuelanatacion/
-│       │   ├── model/        Entidades: Estudiante, Horario, Admin (+ cálculo de fecha de pago)
+│       │   ├── model/        Entidades: Estudiante (+ datos fiscales), Horario, Cuotas, Admin y catálogos del SAT
 │       │   ├── repo/         Repositorios JPA
 │       │   ├── web/          Controladores REST, DTO y validaciones
-│       │   └── config/       Seguridad, JWT y administrador inicial
+│       │   └── config/       Seguridad, JWT, administrador inicial y catálogo de horarios
 │       ├── main/resources/application.properties
 │       └── test/             Pruebas JUnit (base H2 en memoria)
 └── frontend/                 Interfaz en Angular
     ├── Dockerfile            Compila Angular y lo sirve con nginx
     ├── nginx.conf            Sirve la app y reenvía /api al backend
     ├── proxy.conf.json       Proxy de /api para el modo desarrollo
+    ├── public/logo.svg       Logo de Burbujas (también se usa como favicon.svg)
     └── src/app/
         ├── core/             Servicio de API, sesión, modelos y avisos
         ├── layout/           Menú lateral
         ├── shared/           Avatar, etiquetas de estado, diálogos
-        └── pages/            Login, panel, alumnos y horarios
+        └── pages/            Login, panel, alumnos, horarios, facturación y cuotas
 ```
 
 ## API
@@ -208,6 +224,10 @@ Todas las rutas requieren `Authorization: Bearer <token>`, salvo `POST /api/logi
 | `GET` | `/api/horarios` | Lista. Filtro: `dia=lun…dom` |
 | `POST` | `/api/horarios` | Alta de horario |
 | `GET` `PUT` `DELETE` | `/api/horarios/{id}` | Ver (con alumnos), editar o eliminar |
+| `GET` | `/api/cuotas` | Cuotas vigentes `{ inscripcion, mensualidad }` |
+| `GET` | `/api/facturacion` | Próximo pago a facturar de cada alumno que pide factura |
+| `GET` | `/api/catalogos/sat` | Catálogos de régimen fiscal y uso de CFDI |
+| `PUT` | `/api/cuotas` | Cambiarlas. Con `aplicar_a_todos: true` también cambia la mensualidad de los alumnos activos |
 
 Si los datos no son válidos, la API responde `422` con `{ "errores": ["…"] }`.
 
@@ -226,6 +246,14 @@ git push -u origin main
 ```
 
 El archivo `.env`, que contiene tus contraseñas, **no se sube**: está en `.gitignore`. Tampoco se suben `node_modules`, `target` ni `dist`, porque Docker los genera al construir.
+
+## Cambiar el logo
+
+El logo está en `frontend/public/logo.svg` (y `favicon.svg` para la pestaña del navegador). Para usar otro archivo, reemplaza esos dos archivos conservando el nombre, o pon tu imagen como `logo.png` y cambia `logo.svg` por `logo.png` en `frontend/src/app/layout/shell.component.ts` y `frontend/src/app/pages/login.component.ts`. Después reconstruye:
+
+```bash
+docker compose up -d --build web
+```
 
 ## Problemas comunes
 

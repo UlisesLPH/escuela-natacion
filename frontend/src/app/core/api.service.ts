@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
-  Estudiante, EstudianteForm, Horario, HorarioDetalle, HorarioForm, Panel,
+  CatalogosSat, Cuotas, Estudiante, EstudianteForm, Horario, HorarioDetalle, HorarioForm, Panel, PorFacturar,
 } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -47,4 +47,19 @@ export class ApiService {
     return this.http.delete<void>(`/api/horarios/${id}`);
   }
 
+  // Cuotas
+  cuotas() {
+    return this.http.get<Cuotas>('/api/cuotas');
+  }
+  guardarCuotas(cuotas: Cuotas, aplicarATodos: boolean) {
+    return this.http.put<Cuotas>('/api/cuotas', { ...cuotas, aplicar_a_todos: aplicarATodos });
+  }
+
+  // Facturación
+  catalogosSat() {
+    return this.http.get<CatalogosSat>('/api/catalogos/sat');
+  }
+  facturacion() {
+    return this.http.get<PorFacturar[]>('/api/facturacion');
+  }
 }

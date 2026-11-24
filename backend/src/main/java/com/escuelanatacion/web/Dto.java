@@ -1,7 +1,10 @@
 package com.escuelanatacion.web;
 
+import com.escuelanatacion.model.CatalogosSat;
+import com.escuelanatacion.model.DatosFiscales;
 import com.escuelanatacion.model.Estudiante;
 import com.escuelanatacion.model.Horario;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,16 +40,40 @@ public final class Dto {
      */
     public record EstudianteDto(Long id, String nombre, String apellidos, String nombreCompleto,
                                 LocalDate fechaNacimiento, Integer edad, String telefono, String email,
-                                String tutor, int diaPago, LocalDate proximoPago, long diasParaPago,
-                                BigDecimal mensualidad, boolean activo, String notas, String estado,
-                                List<HorarioRef> horarios, LocalDate creado) {
+                                String tutor, int diaPago, LocalDate fechaInscripcion, LocalDate primerPago,
+                                LocalDate proximoPago, long diasParaPago, BigDecimal mensualidad,
+                                BigDecimal cuotaInscripcion, boolean activo, String notas, String estado,
+                                List<HorarioRef> horarios, LocalDate creado, FacturaDto factura) {
         static EstudianteDto de(Estudiante e, LocalDate hoy) {
             return new EstudianteDto(e.getId(), e.getNombre(), e.getApellidos(), e.nombreCompleto(),
                     e.getFechaNacimiento(), e.edad(), e.getTelefono(), e.getEmail(), e.getTutor(),
-                    e.getDiaPago(), e.proximoPago(hoy), e.diasParaPago(hoy), e.getMensualidad(), e.isActivo(),
-                    e.getNotas(), e.estadoPago(hoy), e.getHorarios().stream().map(HorarioRef::de).toList(),
-                    e.getCreado().toLocalDate());
+                    e.diaDePago(), e.inscripcion(), e.primerPago(), e.proximoPago(hoy), e.diasParaPago(hoy),
+                    e.getMensualidad(), e.getCuotaInscripcion(), e.isActivo(), e.getNotas(), e.estadoPago(hoy),
+                    e.getHorarios().stream().map(HorarioRef::de).toList(), e.getCreado().toLocalDate(),
+                    FacturaDto.de(e.getFactura()));
         }
+    }
+
+    /** Datos de facturación con la descripción de las claves del SAT. */
+    public record FacturaDto(boolean requiere, String rfc, String razonSocial, String tipoPersona,
+                             String regimenFiscal, String regimenTexto, String codigoPostal, String usoCfdi,
+                             String usoTexto, String correo) {
+        static FacturaDto de(DatosFiscales f) {
+            String tipo = f.getRfc() == null ? null : CatalogosSat.esPersonaFisica(f.getRfc()) ? "fisica" : "moral";
+            return new FacturaDto(f.pideFactura(), f.getRfc(), f.getRazonSocial(), tipo, f.getRegimenFiscal(),
+                    CatalogosSat.regimen(f.getRegimenFiscal()).map(CatalogosSat.Clave::descripcion).orElse(null),
+                    f.getCodigoPostal(), f.getUsoCfdi(),
+                    CatalogosSat.uso(f.getUsoCfdi()).map(CatalogosSat.Clave::descripcion).orElse(null),
+                    f.getCorreo());
+        }
+    }
+
+    /** Un pago de un alumno que pide factura: qué concepto, cuánto y cuándo. */
+    public record PorFacturar(Long estudianteId, String alumno, String concepto, BigDecimal importe,
+                              LocalDate fecha, long dias, String cuando, FacturaDto factura) {
+    }
+
+    public record CatalogosSatDto(List<CatalogosSat.Clave> regimenes, List<CatalogosSat.Clave> usosCfdi) {
     }
 
     public record HorarioDetalle(@JsonUnwrapped HorarioDto horario, List<EstudianteDto> estudiantes) {
@@ -76,8 +103,21 @@ public final class Dto {
     }
 
     public record EstudianteForm(String nombre, String apellidos, String fechaNacimiento, String telefono,
-                                 String email, String tutor, Integer diaPago, BigDecimal mensualidad,
-                                 Boolean activo, String notas, List<Long> horarios) {
+                                 String email, String tutor, BigDecimal mensualidad,
+                                 BigDecimal cuotaInscripcion, Boolean activo, String notas, List<Long> horarios,
+                                 FacturaForm factura) {
+    }
+
+    public record FacturaForm(Boolean requiere, String rfc, String razonSocial, String regimenFiscal,
+                              String codigoPostal, String usoCfdi, String correo) {
+    }
+
+    /** Cuotas vigentes; {@code actualizados} = alumnos a los que se les cambió la mensualidad. */
+    public record CuotasDto(BigDecimal inscripcion, BigDecimal mensualidad, int actualizados) {
+    }
+
+    public record CuotasForm(BigDecimal inscripcion, BigDecimal mensualidad,
+                             @JsonProperty("aplicar_a_todos") Boolean aplicarATodos) {
     }
 
     public record HorarioForm(String nombre, List<String> dias, String horaInicio, String horaFin, String nivel,

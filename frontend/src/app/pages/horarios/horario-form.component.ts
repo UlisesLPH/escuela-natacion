@@ -77,7 +77,7 @@ import { UiService } from '../../core/ui.service';
     .dia strong { font-size: 16px; }
     .dia span { font-size: 11px; color: var(--muted); }
     .dia:hover { border-color: var(--brand); }
-    .dia.sel { background: linear-gradient(135deg, var(--brand), #0891b2); border-color: transparent; color: #fff; box-shadow: 0 6px 14px rgba(14,116,144,.25); }
+    .dia.sel { background: linear-gradient(135deg, var(--brand), var(--sky)); border-color: transparent; color: #fff; box-shadow: 0 6px 14px rgba(40,120,190,.25); }
     .dia.sel span { color: #cffafe; }
     .fin { justify-content: flex-end; }
     @media (max-width: 600px) { .semana { grid-template-columns: repeat(4, 1fr); } }

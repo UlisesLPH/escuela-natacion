@@ -3,7 +3,7 @@ import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { mensajeDeError } from '../../core/auth';
-import { Estudiante, cuandoPaga } from '../../core/models';
+import { Estudiante, cuandoPaga, textoFactura } from '../../core/models';
 import { UiService } from '../../core/ui.service';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { EstadoPillComponent } from '../../shared/estado-pill.component';
@@ -26,7 +26,7 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
             <div class="meta">
               @if (a.edad !== null) { <span><span class="icon">cake</span> {{ a.edad }} años</span> }
               @if (a.tutor) { <span><span class="icon">family_restroom</span> {{ a.tutor }}</span> }
-              <span><span class="icon">calendar_today</span> Alta: {{ a.creado | date: "d 'de' MMM y" }}</span>
+              <span><span class="icon">how_to_reg</span> Inscrito el {{ a.fecha_inscripcion | date: "d 'de' MMM y" }}</span>
             </div>
           </div>
           <div class="row acciones">
@@ -46,12 +46,16 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
               <div class="grow">
                 <div class="et">Próxima fecha de pago</div>
                 <div class="grande">{{ cuando(a.dias_para_pago) }}</div>
-                <div class="muted">Le toca pagar el <strong>día {{ a.dia_pago }}</strong> de cada mes
-                  @if (a.dia_pago > 28) { <span class="small">(en meses más cortos, el último día)</span> }
+                <div class="muted">Le toca pagar el <strong>día {{ a.dia_pago }}</strong> de cada mes.
+                  @if (a.dia_pago > 28) { <span class="small">(los meses sin día {{ a.dia_pago }}, el día 1 del mes siguiente)</span> }
                 </div>
+                <div class="muted small">Inscrito el {{ a.fecha_inscripcion | date: "d 'de' MMMM 'de' y" }} · primer pago el {{ a.primer_pago | date: "d 'de' MMMM 'de' y" }}</div>
                 <div class="row mt-16 wrap">
                   @if (a.activo) { <app-estado [estado]="a.estado" /> }
                   <span class="tag tag-muted"><span class="icon">payments</span>{{ a.mensualidad | currency: 'MXN' : 'symbol-narrow' }} al mes</span>
+                  @if (a.cuota_inscripcion !== null) {
+                    <span class="tag tag-muted"><span class="icon">how_to_reg</span>Inscripción {{ a.cuota_inscripcion | currency: 'MXN' : 'symbol-narrow' }}</span>
+                  }
                 </div>
               </div>
             </section>
@@ -80,6 +84,7 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
             </section>
           </div>
 
+          <div class="der">
           <section class="card contacto">
             <div class="card-head"><h2><span class="icon">contact_page</span> Contacto</h2></div>
             <dl>
@@ -94,6 +99,30 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
               <div><dt>Notas</dt><dd class="notas">{{ a.notas || 'Sin notas' }}</dd></div>
             </dl>
           </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h2><span class="icon">receipt_long</span> Facturación</h2>
+              @if (a.factura.requiere) {
+                <button class="btn btn-sm btn-ghost" (click)="copiar(a)"><span class="icon">content_copy</span> Copiar datos</button>
+              } @else {
+                <a class="small fw-6" [routerLink]="['/alumnos', a.id, 'editar']">Agregar datos</a>
+              }
+            </div>
+            @if (a.factura.requiere) {
+              <dl>
+                <div><dt>RFC</dt><dd>{{ a.factura.rfc }} <span class="tag tag-muted">Persona {{ a.factura.tipo_persona === 'moral' ? 'moral' : 'física' }}</span></dd></div>
+                <div><dt>Nombre o razón social</dt><dd>{{ a.factura.razon_social }}</dd></div>
+                <div><dt>Régimen fiscal</dt><dd>{{ a.factura.regimen_fiscal }} · {{ a.factura.regimen_texto }}</dd></div>
+                <div><dt>Código postal</dt><dd>{{ a.factura.codigo_postal }}</dd></div>
+                <div><dt>Uso de CFDI</dt><dd>{{ a.factura.uso_cfdi }} · {{ a.factura.uso_texto }}</dd></div>
+                <div><dt>Correo</dt><dd>{{ a.factura.correo }}</dd></div>
+              </dl>
+            } @else {
+              <div class="vacio chico"><span class="icon">receipt</span><p>No requiere factura.</p></div>
+            }
+          </section>
+          </div>
         </div>
       } @else if (error()) {
         <div class="card vacio"><span class="icon">person_off</span><h3>No encontramos a este alumno</h3><p>{{ error() }}</p>
@@ -116,7 +145,7 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
     .pago { display: flex; gap: 22px; padding: 22px; align-items: center; border-left: 5px solid var(--line); }
     .tono-borde-hoy { border-left-color: #fbbf24; } .tono-borde-pronto { border-left-color: var(--sky); }
     .cal { width: 104px; flex-shrink: 0; text-align: center; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #fff; }
-    .cal span { display: block; padding: 6px 0; background: linear-gradient(135deg, var(--brand), #0891b2); color: #fff; font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: .08em; }
+    .cal span { display: block; padding: 6px 0; background: linear-gradient(135deg, var(--brand), var(--sky)); color: #fff; font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: .08em; }
     .cal strong { display: block; font-size: 42px; line-height: 1.1; padding-top: 6px; }
     .cal em { display: block; font-style: normal; color: var(--muted); font-size: 12px; padding-bottom: 8px; text-transform: capitalize; }
     .et { font-size: 13px; color: var(--muted); font-weight: 600; }
@@ -133,6 +162,9 @@ import { EstadoPillComponent } from '../../shared/estado-pill.component';
     dt { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
     dd { margin: 4px 0 0; font-weight: 600; }
     .notas { white-space: pre-line; font-weight: 500; }
+    .der { display: flex; flex-direction: column; gap: 20px; }
+    .vacio.chico { padding: 24px 16px; }
+    .vacio.chico .icon { font-size: 32px; }
     .vacio .btn { margin-top: 12px; }
     @media (max-width: 960px) { .cols { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { .pago { flex-direction: column; text-align: center; } .pago .row { justify-content: center; } }
@@ -153,6 +185,15 @@ export class AlumnoDetalleComponent implements OnInit {
       next: (a) => this.alumno.set(a),
       error: (e) => this.error.set(mensajeDeError(e)[0]),
     });
+  }
+
+  async copiar(a: Estudiante): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(textoFactura(a.factura));
+      this.ui.avisar('Datos de facturación copiados.');
+    } catch {
+      this.ui.avisar('No se pudo copiar. Selecciona el texto y cópialo a mano.', 'error');
+    }
   }
 
   async eliminar(a: Estudiante): Promise<void> {

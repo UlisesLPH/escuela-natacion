@@ -38,7 +38,7 @@ const CLAVE_VISTA = 'natacion.vista-alumnos';
         </div>
         <select class="select" [ngModel]="horarioId()" (ngModelChange)="horarioId.set($event)" aria-label="Filtrar por horario">
           <option [ngValue]="null">Todos los horarios</option>
-          @for (h of horarios(); track h.id) { <option [ngValue]="h.id">{{ h.nombre }} · {{ h.rango }}</option> }
+          @for (h of horarios(); track h.id) { <option [ngValue]="h.id">{{ h.nombre }}</option> }
         </select>
         <select class="select orden" [ngModel]="orden()" (ngModelChange)="orden.set($event)" aria-label="Ordenar">
           <option value="proximo">Ordenar: próximo pago</option>
@@ -97,10 +97,11 @@ const CLAVE_VISTA = 'natacion.vista-alumnos';
 
               <div class="horarios">
                 @for (h of e.horarios; track h.id) {
-                  <span class="tag" [title]="h.dias_texto"><span class="icon">schedule</span>{{ h.nombre }} · {{ h.rango }}</span>
+                  <span class="tag" [title]="h.dias_texto + ' · ' + h.rango"><span class="icon">schedule</span>{{ h.nombre }}</span>
                 } @empty {
                   <span class="tag tag-muted">Sin horario</span>
                 }
+                @if (e.factura.requiere) { <span class="tag factura" title="Requiere factura"><span class="icon">receipt_long</span>Factura</span> }
               </div>
 
               <div class="pie">
@@ -195,6 +196,7 @@ const CLAVE_VISTA = 'natacion.vista-alumnos';
     .monto { font-weight: 800; color: var(--ink); font-size: 15px; white-space: nowrap; }
     .monto span { font-weight: 500; color: var(--muted); font-size: 12px; }
     .inactivo { opacity: .6; }
+    .tag.factura { background: #fff4e5; color: #b45309; }
     .vacio .btn { margin-top: 12px; }
     @media (max-width: 720px) { .herramientas .select { flex: 1 1 100%; } }
   `,

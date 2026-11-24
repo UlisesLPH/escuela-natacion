@@ -5,6 +5,7 @@ import com.escuelanatacion.model.Horario;
 import com.escuelanatacion.repo.HorarioRepository;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,11 +31,19 @@ public class HorarioController {
         this.horarios = horarios;
     }
 
+    /** Agrupa por días (L-M-V, luego M-J, luego sábado…) y dentro de cada grupo por hora. */
+    private static final Comparator<Horario> ORDEN = Comparator
+            .comparingInt((Horario h) -> h.listaDias().isEmpty() ? 99 : Calendario.DIAS.indexOf(h.listaDias().get(0)))
+            .thenComparing(Horario::getDias)
+            .thenComparing(Horario::getHoraInicio)
+            .thenComparing(Horario::getNombre);
+
     @GetMapping
     @Transactional(readOnly = true)
     public List<Dto.HorarioDto> listar(@RequestParam(defaultValue = "") String dia) {
-        return horarios.findAllByOrderByHoraInicioAscNombreAsc().stream()
+        return horarios.findAll().stream()
                 .filter(h -> !Calendario.DIAS.contains(dia) || h.listaDias().contains(dia))
+                .sorted(ORDEN)
                 .map(Dto.HorarioDto::de)
                 .toList();
     }

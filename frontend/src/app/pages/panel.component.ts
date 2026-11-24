@@ -119,7 +119,7 @@ import { EstadoPillComponent } from '../shared/estado-pill.component';
     .ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; }
     .ico .icon { font-size: 24px; }
     .azul { background: #e0f2fe; color: #0369a1; } .ambar { background: var(--warn-bg); color: var(--warn); }
-    .cielo { background: #e0f2fe; color: var(--info); } .agua { background: #cffafe; color: #0e7490; }
+    .cielo { background: #e0f2fe; color: var(--info); } .agua { background: #cffafe; color: var(--brand-600); }
     .et { font-size: 13px; color: var(--muted); font-weight: 600; }
     .val { font-size: 28px; font-weight: 800; line-height: 1.2; }
     .det { font-size: 12px; color: var(--muted); }

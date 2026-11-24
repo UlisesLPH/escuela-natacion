@@ -1,7 +1,10 @@
 package com.escuelanatacion.web;
 
+import com.escuelanatacion.model.CatalogosSat;
+import com.escuelanatacion.model.DatosFiscales;
 import com.escuelanatacion.model.Estudiante;
 import com.escuelanatacion.model.Horario;
+import com.escuelanatacion.repo.CuotasRepository;
 import com.escuelanatacion.repo.EstudianteRepository;
 import com.escuelanatacion.repo.HorarioRepository;
 import java.math.BigDecimal;
@@ -32,10 +35,13 @@ public class EstudianteController {
 
     private final EstudianteRepository estudiantes;
     private final HorarioRepository horarios;
+    private final CuotasRepository cuotas;
 
-    public EstudianteController(EstudianteRepository estudiantes, HorarioRepository horarios) {
+    public EstudianteController(EstudianteRepository estudiantes, HorarioRepository horarios,
+                                CuotasRepository cuotas) {
         this.estudiantes = estudiantes;
         this.horarios = horarios;
+        this.cuotas = cuotas;
     }
 
     @GetMapping
@@ -96,18 +102,25 @@ public class EstudianteController {
         if (nombre == null) {
             errores.add("El nombre es obligatorio.");
         }
-        Integer dia = f.diaPago();
-        if (dia == null || dia < 1 || dia > 31) {
-            errores.add("El día de pago debe estar entre 1 y 31.");
-        }
-        BigDecimal mensualidad = f.mensualidad();
-        if (mensualidad == null || mensualidad.signum() < 0) {
+        // Si no las mandan: al crear se usan las cuotas vigentes; al editar se conservan.
+        BigDecimal mensualidad = f.mensualidad() != null ? f.mensualidad()
+                : nuevo ? cuotas.vigentes().getMensualidad() : e.getMensualidad();
+        if (mensualidad.signum() < 0) {
             errores.add("La mensualidad debe ser un número mayor o igual a 0.");
+        }
+        BigDecimal inscripcionCuota = f.cuotaInscripcion() != null ? f.cuotaInscripcion()
+                : nuevo ? cuotas.vigentes().getInscripcion() : e.getCuotaInscripcion();
+        if (inscripcionCuota != null && inscripcionCuota.signum() < 0) {
+            errores.add("La inscripción debe ser un número mayor o igual a 0.");
         }
         LocalDate nacimiento = Campos.fecha(f.fechaNacimiento(), "La fecha de nacimiento no es válida.", errores);
         if (nacimiento != null && nacimiento.isAfter(LocalDate.now())) {
             errores.add("La fecha de nacimiento no puede ser futura.");
         }
+        DatosFiscales factura = datosFiscales(f.factura(), errores);
+
+        // La fecha de inscripción no se captura: es el día en que se registra y no cambia al editar.
+        LocalDate inscripcion = nuevo ? LocalDate.now() : e.inscripcion();
 
         boolean activo = nuevo || f.activo() == null || f.activo();
         List<Horario> elegidos = f.horarios() == null || f.horarios().isEmpty()
@@ -129,11 +142,63 @@ public class EstudianteController {
         e.setTelefono(Campos.texto(f.telefono(), 30));
         e.setEmail(Campos.texto(f.email(), 120));
         e.setTutor(Campos.texto(f.tutor(), 120));
-        e.setDiaPago(dia);
+        e.setFechaInscripcion(inscripcion); // también fija el día de pago
         e.setMensualidad(mensualidad);
+        e.setCuotaInscripcion(inscripcionCuota);
+        e.setFactura(factura);
         e.setActivo(activo);
         e.setNotas(Campos.texto(f.notas(), 2000));
         e.setHorarios(new ArrayList<>(elegidos));
         return Dto.EstudianteDto.de(estudiantes.save(e), LocalDate.now());
+    }
+
+    /** Valida los datos de facturación; si no pide factura, se guardan vacíos. */
+    static DatosFiscales datosFiscales(Dto.FacturaForm f, List<String> errores) {
+        DatosFiscales d = new DatosFiscales();
+        if (f == null || !Boolean.TRUE.equals(f.requiere())) {
+            return d;
+        }
+        d.setRequiere(true);
+
+        String rfc = Campos.texto(f.rfc(), 20);
+        rfc = rfc == null ? null : rfc.toUpperCase(java.util.Locale.ROOT).replaceAll("[\\s-]", "");
+        if (!CatalogosSat.rfcValido(rfc)) {
+            errores.add("El RFC no es válido (12 caracteres para persona moral, 13 para persona física).");
+        }
+        String nombre = Campos.texto(f.razonSocial(), 254);
+        if (nombre == null) {
+            errores.add("Escribe el nombre o razón social tal como aparece en la constancia de situación fiscal.");
+        }
+        String cp = Campos.texto(f.codigoPostal(), 10);
+        if (!CatalogosSat.cpValido(cp)) {
+            errores.add("El código postal del domicilio fiscal debe tener 5 dígitos.");
+        }
+        String correo = Campos.texto(f.correo(), 120);
+        if (correo == null || !correo.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            errores.add("Escribe un correo válido para enviar la factura.");
+        }
+
+        boolean fisica = CatalogosSat.esPersonaFisica(rfc);
+        boolean rfcOk = CatalogosSat.rfcValido(rfc);
+        var regimen = CatalogosSat.regimen(f.regimenFiscal());
+        if (regimen.isEmpty()) {
+            errores.add("Selecciona el régimen fiscal.");
+        } else if (rfcOk && !regimen.get().aplicaA(fisica)) {
+            errores.add("El régimen fiscal %s no aplica a persona %s.".formatted(regimen.get().clave(), fisica ? "física" : "moral"));
+        }
+        var uso = CatalogosSat.uso(f.usoCfdi());
+        if (uso.isEmpty()) {
+            errores.add("Selecciona el uso del CFDI.");
+        } else if (rfcOk && !uso.get().aplicaA(fisica)) {
+            errores.add("El uso de CFDI %s no aplica a persona %s.".formatted(uso.get().clave(), fisica ? "física" : "moral"));
+        }
+
+        d.setRfc(rfc);
+        d.setRazonSocial(nombre == null ? null : nombre.toUpperCase(java.util.Locale.ROOT));
+        d.setCodigoPostal(cp);
+        d.setRegimenFiscal(f.regimenFiscal());
+        d.setUsoCfdi(f.usoCfdi());
+        d.setCorreo(correo);
+        return d;
     }
 }

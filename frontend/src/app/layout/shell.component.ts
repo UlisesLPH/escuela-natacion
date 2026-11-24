@@ -11,12 +11,10 @@ import { AvatarComponent } from '../shared/avatar.component';
     <div class="app" [class.abierto]="menuAbierto()">
       <aside class="lateral">
         <a class="marca" routerLink="/">
-          <span class="logo">
-            <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 36c5 0 5-4 12-4s7 4 12 4 5-4 12-4 7 4 12 4" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/><path d="M8 47c5 0 5-4 12-4s7 4 12 4 5-4 12-4 7 4 12 4" fill="none" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" opacity=".55"/><circle cx="40" cy="19" r="6" fill="#fff"/></svg>
-          </span>
+          <img class="logo" src="logo.svg" alt="">
           <span>
-            <strong>Escuela de</strong>
-            <span>Natación</span>
+            <span class="nombre">Burbujas</span>
+            <strong>Centro acuático</strong>
           </span>
         </a>
 
@@ -47,7 +45,8 @@ import { AvatarComponent } from '../shared/avatar.component';
       <div class="contenido">
         <header class="barra-movil">
           <button class="btn-icon" (click)="menuAbierto.set(true)" aria-label="Abrir menú"><span class="icon">menu</span></button>
-          <strong>Escuela de Natación</strong>
+          <img src="logo.svg" alt="" width="28" height="28">
+          <strong>Burbujas · Centro acuático</strong>
         </header>
         <router-outlet />
       </div>
@@ -57,21 +56,20 @@ import { AvatarComponent } from '../shared/avatar.component';
     .app { display: flex; min-height: 100vh; }
     .lateral {
       position: sticky; top: 0; height: 100vh; width: 248px; flex-shrink: 0;
-      background: radial-gradient(120% 60% at 0% 0%, #164e74 0%, transparent 60%), var(--navy);
+      background: radial-gradient(120% 60% at 0% 0%, #1f5f99 0%, transparent 60%), var(--navy);
       color: #cbd5e1; display: flex; flex-direction: column; padding: 22px 16px; overflow: hidden;
     }
     .marca { display: flex; align-items: center; gap: 12px; color: #fff; padding: 4px 8px 26px; line-height: 1.15; }
-    .marca strong { display: block; font-size: 13px; font-weight: 600; color: #93c5fd; }
-    .marca span span { font-size: 19px; font-weight: 800; }
-    .logo { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.08); display: grid; place-items: center; }
-    .logo svg { width: 34px; }
+    .marca strong { display: block; font-size: 12px; font-weight: 600; color: #9fd3f5; letter-spacing: .02em; }
+    .marca .nombre { display: block; font-size: 20px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .logo { width: 48px; height: 48px; border-radius: 50%; background: #fff; padding: 2px; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
     nav { display: flex; flex-direction: column; gap: 4px; }
     nav a {
       display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px;
       color: #cbd5e1; font-weight: 600; transition: background .15s, color .15s;
     }
     nav a:hover { background: rgba(255,255,255,.06); color: #fff; }
-    nav a.activo { background: linear-gradient(135deg, rgba(56,189,248,.22), rgba(14,116,144,.25)); color: #fff; box-shadow: inset 0 0 0 1px rgba(125,211,252,.18); }
+    nav a.activo { background: linear-gradient(135deg, rgba(58,174,230,.25), rgba(40,120,190,.28)); color: #fff; box-shadow: inset 0 0 0 1px rgba(125,211,252,.18); }
     nav a.activo .icon { color: var(--sky); font-variation-settings: 'FILL' 1; }
     .ola { margin-top: auto; margin-left: -16px; margin-right: -16px; height: 80px; }
     .ola svg { width: 100%; height: 100%; display: block; }
@@ -102,6 +100,8 @@ export class ShellComponent {
     { ruta: '/', texto: 'Panel', icono: 'space_dashboard' },
     { ruta: '/alumnos', texto: 'Alumnos', icono: 'groups' },
     { ruta: '/horarios', texto: 'Horarios', icono: 'schedule' },
+    { ruta: '/facturacion', texto: 'Facturación', icono: 'receipt_long' },
+    { ruta: '/cuotas', texto: 'Cuotas', icono: 'sell' },
   ];
 
   constructor() {
