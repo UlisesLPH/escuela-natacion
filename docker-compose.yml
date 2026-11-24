@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-natacion}
+      POSTGRES_USER: ${POSTGRES_USER:-natacion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-natacion}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # API REST en Java (Spring Boot). No se publica al host: entra por nginx en /api.
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-natacion}
+      POSTGRES_USER: ${POSTGRES_USER:-natacion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-natacion}
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      TZ: ${TZ:-America/Mexico_City}
+
+  # Angular compilado y servido por nginx, que también reenvía /api a la API.
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${APP_PORT:-8000}:80"
+
+  # --- Opcionales -------------------------------------------------------------
+
+  # Angular con recarga en vivo: docker compose --profile dev up frontend-dev → http://localhost:4200
+  frontend-dev:
+    image: node:22-alpine
+    profiles: ["dev"]
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && npx ng serve --host 0.0.0.0 --poll 1000"
+    volumes:
+      - ./frontend:/app
+      - node-modules:/app/node_modules
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api
+
+  # Pruebas del backend: docker compose run --rm api-test
+  api-test:
+    image: maven:3.9-eclipse-temurin-21
+    profiles: ["test"]
+    working_dir: /app
+    command: mvn -B test
+    volumes:
+      - ./backend:/app
+      - maven-cache:/root/.m2
+
+volumes:
+  pgdata:
+  node-modules:
+  maven-cache:
